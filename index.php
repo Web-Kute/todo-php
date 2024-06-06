@@ -5,25 +5,32 @@ $sql = 'SELECT * FROM tasks';
 $result = mysqli_query($mysqli, $sql);
 $tasks = mysqli_fetch_all($result, MYSQLI_ASSOC);
 $taksNumber = mysqli_num_rows($result);
-$errors = "";
-
-$tasky = $_POST['addtask'];
+$tasky = "";
+$errors = $addtaskErr = "";
 if (isset($_POST['submit']) && $_POST['submit'] === "Add") {
-  if (!empty($tasky)) {
+// Validate input task
+if (isset($_POST['addtask'])) {
+  $tasky = filter_var($_POST['addtask'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+} else {
+  echo  $addtaskErr = 'Veuillez ajouter une tâche';
+}
+
+
+// if (isset($_POST['addtask'])) {
+//   $tasky = htmlspecialchars($_POST['addtask']);
+// }
+
+// Add a task
+  if (isset($tasky)) {
     $sql = "INSERT INTO `tasks`(`task`) VALUES ('" . $tasky . "')";
     mysqli_query($mysqli, $sql);
     header('Location: index.php');
-  } else {
+    } else {
     $errors = "Veuillez ajouter une tâche";
   }
 }
 
-// if ($mysqli->query($sql) === TRUE) {
-//   echo "New record created successfully";
-// } else {
-//   echo "Error: " . $sql . "<br>" . $mysqli->error;
-// }
-
+// Delete a task
 if (isset($_GET['del_task'])) {
   $id = $_GET['del_task'];
   $sql = "DELETE FROM tasks WHERE `tasks`.`task_id` = $id";
@@ -31,12 +38,13 @@ if (isset($_GET['del_task'])) {
   header('Location: index.php');
 }
 
-if (isset($_POST['done'])) {
-  $id = $_POST['done'];
-  $sql = "UPDATE tasks SET `done`= 1 WHERE `tasks`.`task_id` = $id";
-  mysqli_query($mysqli, $sql);
-  header('Location: index.php');
-}
+// Mark a task as done
+// if (isset($_POST['done'])) {
+//   $id = $_POST['done'];
+//   $sql = "UPDATE tasks SET `done`= 1 WHERE `tasks`.`task_id` = $id";
+//   mysqli_query($mysqli, $sql);
+//   header('Location: index.php');
+// }
 
 ?>
 
@@ -55,23 +63,29 @@ if (isset($_POST['done'])) {
 <body>
   <h1>To Do List</h1>
   <?php if (isset($tasky)) {
-    echo "<p>Tâches ajoutées ! " . $taksNumber .  "</p>";
+    echo "<p class='error'>Nombre de tâches ! " . $taksNumber .  "</p>";
   } ?>
-  <div class="error"><?php if (isset($errors)) { ?>
-      <form action="<?php echo $_SERVER['PHP_SELF'] ?>" method="post">
-        <label for="addtask">Add a task: </label>
-        <input type="text" id="addtask" name="addtask">
-        <input type="submit" name="submit" value="Add">
-      </form>
-      <p><?php echo $errors; ?></p>
-    <?php } ?>
-  </div>
+
+  <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="POST">
+    <label for="addtask">Add a task: </label>
+    <input type="text" id="addtask" name="addtask">
+    <input type="submit" name="submit" value="Add">
+  </form>
+
+  <?php if (isset($errors)) : ?>
+    <p class="error"><?php echo $errors; ?></p>
+  <?php endif; ?>
+
   <ul class="tasks-list">
     <?php
     foreach ($tasks as $task) {
-      $checked = $task['done'] === 1 ? 'checked' : 'unchecked';
-      echo '<div class="task-item"><input class="checklist" type="checkbox" name="done" value="' . $task['task_id'] . '"' . $checked . '  ><li class="task' . ($task['done'] ? ' done' : '') . '">' . $task['task_id'] . ' ' . $task['task'] . ' </li><a href="index.php?del_task= ' . $task['task_id'] . '">X</a></div>';
-      var_dump($task['done']);
+      // $checked = $task['done'] === 1 ? 'checked' : 'unchecked';
+      echo '<div class="task-item">
+            <input class="checklist" type="checkbox" name="done" value="">
+              <li class="task' . ($task['done'] ? ' done' : '') . '"> ' . $task['task'] . ' </li>
+              <a href="index.php?del_task= ' . $task['task_id'] . '">X</a>
+            </div>';
+      echo date_format(date_create($task['date']), 'g:ia \o\n l jS F Y');
     }
     ?>
   </ul>
@@ -84,6 +98,8 @@ if (isset($_POST['done'])) {
         const task = e.target.parentElement;
         task.classList.toggle('done');
         e.target.setAttribute('checked', 'checked');
+      } else {
+        e.target.setAttribute('checked', '');
       }
     });
   </script>
